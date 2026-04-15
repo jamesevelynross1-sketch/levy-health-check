@@ -98,9 +98,29 @@ export default function HealthCheckForm() {
 
   return (
     <div className="health-form">
-      <Stepper steps={steps} current={step} />
+  <div className="progress-wrap">
+    <div className="progress-meta">
+      <span className="progress-step">
+        Step {step + 1} of {steps.length}
+      </span>
+      <span className="progress-label">
+        {steps[step]}
+      </span>
+    </div>
 
-      <div className="form-panel">
+    <div className="progress-track">
+      <div
+        className="progress-fill"
+        style={{
+          width: `${((step + 1) / steps.length) * 100}%`,
+        }}
+      />
+    </div>
+  </div>
+
+  <Stepper steps={steps} current={step} />
+
+  <div className="form-panel">
         {step === 0 ? (
           <section>
             <div className="section-heading">

@@ -952,3 +952,44 @@ textarea {
   );
   box-shadow: 0 0 0 2px rgba(73, 163, 134, 0.15);
 }
+
+.progress-wrap {
+  margin-bottom: 18px;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.progress-step {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #175f7b;
+}
+
+.progress-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #49a386;
+}
+
+.progress-track {
+  width: 100%;
+  height: 10px;
+  background: #dfe8ec;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #175f7b 0%, #49a386 100%);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
