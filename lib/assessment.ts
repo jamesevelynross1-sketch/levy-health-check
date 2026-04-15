@@ -254,6 +254,15 @@ export const assessmentCategories: AssessmentCategory[] = [
     ],
   },
 ];
+export const initialAssessmentAnswers: AssessmentAnswers = assessmentCategories.reduce(
+  (answers, category) => {
+    category.questions.forEach((question) => {
+      answers[question.id] = question.options[0].score;
+    });
+    return answers;
+  },
+  {} as AssessmentAnswers
+);
 
 export type AssessmentReport = {
   answers: AssessmentAnswers;
