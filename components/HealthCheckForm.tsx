@@ -4,108 +4,156 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Stepper from './Stepper';
 import {
-export const buildAssessmentReport = (
-  answers: AssessmentAnswers,
-  metadata: AssessmentMetadata
-): AssessmentReport => {
-  const safeMetadata: AssessmentMetadata = {
-    ...metadata,
-    workforceSize: safeNumber(metadata.workforceSize, 1),
-    levyContribution: safeNumber(metadata.levyContribution, 0),
-    monthlyLevySpend: safeNumber(metadata.monthlyLevySpend, 0),
-    apprenticeCount: safeNumber(metadata.apprenticeCount, 0),
+  assessmentCategories,
+  buildAssessmentReport,
+  initialAssessmentAnswers,
+  type AssessmentAnswers,
+  type AssessmentMetadata,
+} from '../lib/assessment';
+
+const steps = [
+  'Organisation & funding',
+  'Apprenticeship activity',
+  'Strategy & governance',
+  'Provider & culture',
+];
+
+const pageGroups = [[0, 1], [2], [3, 4], [5, 6, 7]] as const;
+
+export default function HealthCheckForm() {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<AssessmentAnswers>(initialAssessmentAnswers);
+  const [organisationName, setOrganisationName] = useState('');
+  const [sector, setSector] = useState('Education');
+  const [workforceSize, setWorkforceSize] = useState('180');
+  const [levyContribution, setLevyContribution] = useState('120000');
+  const [monthlyLevySpend, setMonthlyLevySpend] = useState('10000');
+  const [apprenticeCount, setApprenticeCount] = useState('25');
+  const [logoDataUrl, setLogoDataUrl] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({
+    workforceSize: '',
+    levyContribution: '',
+    monthlyLevySpend: '',
+    apprenticeCount: '',
+  });
+
+  const router = useRouter();
+
+  const safeNumber = (value: unknown, fallback: number) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed || fallback : fallback;
   };
 
-  const categoryResults = getCategoryResults(answers);
-  const overallScore = getOverallScore(answers);
-  const maturity = getMaturityLevel(overallScore);
+  const validateNumericField = (field: string, value: string) => {
+    const trimmed = value.trim();
 
-  const recommendations: ReportRecommendation[] = [];
-
-  for (const category of assessmentCategories) {
-    for (const question of category.questions) {
-      const selectedScore = answers[question.id];
-      const selectedOption = question.options.find((option) => option.score === selectedScore);
-
-      if (selectedOption?.recommendations?.length) {
-        for (const recommendation of selectedOption.recommendations) {
-          recommendations.push({
-            questionId: question.id,
-            questionPrompt: question.prompt,
-            categoryId: category.id,
-            categoryTitle: category.title,
-            title: recommendation.title,
-            detail: recommendation.detail,
-            priority: recommendation.priority ?? 'Medium',
-          });
-        }
-      }
+    if (!trimmed) {
+      return 'This field is required.';
     }
-  }
 
-  const dedupedRecommendations = recommendations.filter(
-    (recommendation, index, array) =>
-      index ===
-      array.findIndex(
-        (item) =>
-          item.title === recommendation.title &&
-          item.categoryId === recommendation.categoryId
-      )
-  );
+    if (!/^[0-9]+$/.test(trimmed)) {
+      return 'Enter a valid number.';
+    }
 
-  const priorityOrder = { High: 0, Medium: 1, Low: 2 };
+    const parsed = Number(trimmed);
 
-  dedupedRecommendations.sort(
-    (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
-  );
+    if (field === 'workforceSize' && parsed < 1) {
+      return 'Workforce size must be at least 1.';
+    }
 
-  return {
-    answers,
-    metadata: safeMetadata,
-    overallScore,
-    maturity,
-    categoryResults,
-    executiveSummary: buildExecutiveSummary(overallScore, maturity, categoryResults, safeMetadata),
-    keyRisks: buildKeyRisks(overallScore, categoryResults, safeMetadata),
-    keyOpportunities: buildKeyOpportunities(overallScore, categoryResults, safeMetadata),
-    recommendedNextSteps: buildRecommendedNextSteps(overallScore, categoryResults),
-    consultingSupport: buildConsultingSupport(safeMetadata),
-    recommendations: dedupedRecommendations,
-    updatedAt: new Date().toISOString(),
+    if ((field === 'levyContribution' || field === 'monthlyLevySpend') && parsed < 0) {
+      return 'Enter a valid amount.';
+    }
+
+    if (field === 'apprenticeCount' && parsed < 0) {
+      return 'Apprentice count cannot be negative.';
+    }
+
+    return '';
   };
-};
+
+  const handleFieldBlur = (field: string, value: string) => {
+    setErrors((current) => ({
+      ...current,
+      [field]: validateNumericField(field, value),
+    }));
+  };
+
+  const validateAllFields = () => {
+    const nextErrors = {
+      workforceSize: validateNumericField('workforceSize', workforceSize),
+      levyContribution: validateNumericField('levyContribution', levyContribution),
+      monthlyLevySpend: validateNumericField('monthlyLevySpend', monthlyLevySpend),
+      apprenticeCount: validateNumericField('apprenticeCount', apprenticeCount),
+    };
+
+    setErrors(nextErrors);
+    return Object.values(nextErrors).every((error) => !error);
+  };
+
+  const report = useMemo(
+    () =>
+      buildAssessmentReport(answers, {
+        organisationName,
+        sector,
+        workforceSize: safeNumber(workforceSize, 1),
+        levyContribution: safeNumber(levyContribution, 0),
+        monthlyLevySpend: safeNumber(monthlyLevySpend, 0),
+        apprenticeCount: safeNumber(apprenticeCount, 0),
+        logoDataUrl,
+      }),
+    [
+      answers,
+      organisationName,
+      sector,
+      workforceSize,
+      levyContribution,
+      monthlyLevySpend,
+      apprenticeCount,
+      logoDataUrl,
+    ]
+  );
+
+  const safeStep = Math.min(Math.max(step, 0), pageGroups.length - 1);
+  const currentCategories = pageGroups[safeStep]?.map((index) => assessmentCategories[index]) ?? [];
+
+  const nextStep = () => setStep((current) => Math.min(current + 1, steps.length - 1));
+  const prevStep = () => setStep((current) => Math.max(current - 1, 0));
+
+  const updateAnswer = (questionId: string, score: number) => {
+    setAnswers((current) => ({ ...current, [questionId]: score }));
+  };
 
   return (
     <div className="health-form">
-  <div className="progress-wrap">
-    <div className="progress-meta">
-      <span className="progress-step">
-        Step {step + 1} of {steps.length}
-      </span>
-      <span className="progress-label">
-        {steps[step]}
-      </span>
-    </div>
+      <div className="progress-wrap">
+        <div className="progress-meta">
+          <span className="progress-step">
+            Step {step + 1} of {steps.length}
+          </span>
+          <span className="progress-label">{steps[step]}</span>
+        </div>
 
-    <div className="progress-track">
-      <div
-        className="progress-fill"
-        style={{
-          width: `${((step + 1) / steps.length) * 100}%`,
-        }}
-      />
-    </div>
-  </div>
+        <div className="progress-track">
+          <div
+            className="progress-fill"
+            style={{
+              width: `${((step + 1) / steps.length) * 100}%`,
+            }}
+          />
+        </div>
+      </div>
 
-  <Stepper steps={steps} current={step} />
+      <Stepper steps={steps} current={step} />
 
-  <div className="form-panel">
+      <div className="form-panel">
         {step === 0 ? (
           <section>
             <div className="section-heading">
               <h2>Organisation and workforce profile</h2>
               <p>Capture the core organisation details used in the utilisation assessment report.</p>
             </div>
+
             <div className="field-group">
               <label htmlFor="organisationName">Organisation name</label>
               <input
@@ -115,6 +163,7 @@ export const buildAssessmentReport = (
                 placeholder="e.g. Orion Group"
               />
             </div>
+
             <div className="field-group">
               <label htmlFor="clientLogo">Client logo (optional)</label>
               <input
@@ -124,6 +173,7 @@ export const buildAssessmentReport = (
                 onChange={(event) => {
                   const file = event.target?.files?.[0];
                   if (!file) return;
+
                   const reader = new FileReader();
                   reader.onload = () => {
                     if (typeof reader.result === 'string') {
@@ -137,6 +187,7 @@ export const buildAssessmentReport = (
                 <img className="logo-preview" src={logoDataUrl} alt="Client logo preview" />
               )}
             </div>
+
             <div className="field-group">
               <label htmlFor="sector">Sector</label>
               <select id="sector" value={sector} onChange={(event) => setSector(event.target.value)}>
@@ -147,6 +198,7 @@ export const buildAssessmentReport = (
                 <option>Manufacturing</option>
               </select>
             </div>
+
             <div className="field-group">
               <label htmlFor="workforceSize">Total workforce size</label>
               <input
@@ -163,6 +215,7 @@ export const buildAssessmentReport = (
               />
               {errors.workforceSize && <span className="field-error">{errors.workforceSize}</span>}
             </div>
+
             <div className="field-group">
               <label htmlFor="levyContribution">Annual levy contribution (£)</label>
               <input
@@ -177,8 +230,11 @@ export const buildAssessmentReport = (
                 onChange={(event) => setLevyContribution(event.target.value)}
                 onBlur={(event) => handleFieldBlur('levyContribution', event.target.value)}
               />
-              {errors.levyContribution && <span className="field-error">{errors.levyContribution}</span>}
+              {errors.levyContribution && (
+                <span className="field-error">{errors.levyContribution}</span>
+              )}
             </div>
+
             <div className="field-group">
               <label htmlFor="monthlyLevySpend">Monthly levy spend (£)</label>
               <input
@@ -193,8 +249,11 @@ export const buildAssessmentReport = (
                 onChange={(event) => setMonthlyLevySpend(event.target.value)}
                 onBlur={(event) => handleFieldBlur('monthlyLevySpend', event.target.value)}
               />
-              {errors.monthlyLevySpend && <span className="field-error">{errors.monthlyLevySpend}</span>}
+              {errors.monthlyLevySpend && (
+                <span className="field-error">{errors.monthlyLevySpend}</span>
+              )}
             </div>
+
             <div className="field-group">
               <label htmlFor="apprenticeCount">Number of apprentices</label>
               <input
@@ -209,7 +268,9 @@ export const buildAssessmentReport = (
                 onChange={(event) => setApprenticeCount(event.target.value)}
                 onBlur={(event) => handleFieldBlur('apprenticeCount', event.target.value)}
               />
-              {errors.apprenticeCount && <span className="field-error">{errors.apprenticeCount}</span>}
+              {errors.apprenticeCount && (
+                <span className="field-error">{errors.apprenticeCount}</span>
+              )}
             </div>
           </section>
         ) : (
@@ -219,23 +280,25 @@ export const buildAssessmentReport = (
                 <h2>{category.title}</h2>
                 <p>{category.description}</p>
               </div>
+
               {category.questions.map((question) => (
                 <div className="question-group" key={question.id}>
                   <p>{question.prompt}</p>
+
                   <div className="options-group">
-  {question.options.map((option) => (
-    <label className="option-card" key={option.label}>
-      <input
-        type="radio"
-        name={question.id}
-        value={option.score}
-        checked={answers[question.id] === option.score}
-        onChange={() => updateAnswer(question.id, option.score)}
-      />
-      <span className="option-text">{option.label}</span>
-    </label>
-     ))}
-    </div>
+                    {question.options.map((option) => (
+                      <label className="option-card" key={option.label}>
+                        <input
+                          type="radio"
+                          name={question.id}
+                          value={option.score}
+                          checked={answers[question.id] === option.score}
+                          onChange={() => updateAnswer(question.id, option.score)}
+                        />
+                        <span className="option-text">{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               ))}
             </section>
@@ -253,9 +316,15 @@ export const buildAssessmentReport = (
       </div>
 
       <div className="action-row">
-        <button type="button" className="action-button secondary" onClick={prevStep} disabled={step === 0}>
+        <button
+          type="button"
+          className="action-button secondary"
+          onClick={prevStep}
+          disabled={step === 0}
+        >
           Back
         </button>
+
         {step < steps.length - 1 ? (
           <button type="button" className="action-button primary" onClick={nextStep}>
             Continue
@@ -276,6 +345,7 @@ export const buildAssessmentReport = (
               } catch (error) {
                 console.error('Unable to save report to localStorage', error);
               }
+
               router.push('/health-check/results');
             }}
           >
