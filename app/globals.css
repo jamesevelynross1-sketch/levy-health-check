@@ -919,24 +919,35 @@ textarea {
 
 .option-card {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid #d9e2e7;
-  border-radius: 12px;
+  padding: 16px 18px;
+  border: 1px solid #e3e8ee;
+  border-radius: 10px;
   background: #ffffff;
   cursor: pointer;
+  width: 100%;
+  transition: all 0.2s ease;
 }
 
 .option-card input {
-  margin-top: 3px;
+  margin: 0;
+  accent-color: #49a386;
+  flex-shrink: 0;
 }
 
 .option-text {
-  line-height: 1.4;
+  line-height: 1.5;
+  color: #175f7b;
+  text-align: left;
 }
 
 .option-card:has(input:checked) {
   border-color: #49a386;
-  background: rgba(73, 163, 134, 0.1);
-} 
+  background: rgba(73, 163, 134, 0.12);
+  box-shadow: 0 0 0 2px rgba(73, 163, 134, 0.15);
+}
+
+.option-card:hover {
+  border-color: #49a386;
+}
