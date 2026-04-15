@@ -223,20 +223,20 @@ export default function HealthCheckForm() {
               {category.questions.map((question) => (
                 <div className="question-group" key={question.id}>
                   <p>{question.prompt}</p>
-                  <div className="option-list">
-                    {question.options.map((option) => (
-                      <label className="radio-option" key={option.label}>
-                        <input
-                          type="radio"
-                          name={question.id}
-                          value={option.score}
-                          checked={answers[question.id] === option.score}
-                          onChange={() => updateAnswer(question.id, option.score)}
-                        />
-                        <span>{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
+                  <div className="options-group">
+  {question.options.map((option) => (
+    <label className="option-card" key={option.label}>
+      <input
+        type="radio"
+        name={question.id}
+        value={option.score}
+        checked={answers[question.id] === option.score}
+        onChange={() => updateAnswer(question.id, option.score)}
+      />
+      <span className="option-text">{option.label}</span>
+    </label>
+     ))}
+    </div>
                 </div>
               ))}
             </section>

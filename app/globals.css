@@ -911,3 +911,32 @@ textarea {
     align-items: stretch;
   }
 }
+.options-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #d9e2e7;
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.option-card input {
+  margin-top: 3px;
+}
+
+.option-text {
+  line-height: 1.4;
+}
+
+.option-card:has(input:checked) {
+  border-color: #49a386;
+  background: rgba(73, 163, 134, 0.1);
+} 
