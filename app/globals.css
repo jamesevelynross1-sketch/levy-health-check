@@ -676,43 +676,31 @@ h1 {
   color: #475569;
 }
 
+.question-group p {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: #175f7b;
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+
 .question-section {
-  margin-bottom: 28px;
+  background: #f7fafb;
+  border: 1px solid #e3eaee;
+  border-radius: 20px;
+  padding: 28px;
+}
+
+.section-heading h2 {
+  color: #175f7b;
+  font-size: 2rem;
+  margin-bottom: 8px;
 }
 
 .section-heading p {
-  margin: 12px 0 0;
-  color: #475569;
+  color: #4d6470;
+  font-size: 1rem;
   line-height: 1.6;
-}
-
-.question-group {
-  margin-top: 18px;
-}
-
-.option-list {
-  display: grid;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.radio-option {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 14px 16px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 16px;
-  background: #ffffff;
-  cursor: pointer;
-}
-
-.radio-option input {
-  margin-top: 3px;
-}
-
-.radio-option span {
-  color: #0f172a;
 }
 
 @media print {
@@ -914,40 +902,49 @@ textarea {
 .options-group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  margin-top: 14px;
 }
 
 .option-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 18px;
-  border: 1px solid #e3e8ee;
-  border-radius: 10px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid #d9e2e7;
+  border-radius: 14px;
   background: #ffffff;
   cursor: pointer;
   width: 100%;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .option-card input {
-  margin: 0;
+  margin: 3px 0 0 0;
   accent-color: #49a386;
-  flex-shrink: 0;
 }
 
 .option-text {
+  display: block;
+  width: 100%;
+  min-width: 0;
   line-height: 1.5;
   color: #175f7b;
   text-align: left;
-}
-
-.option-card:has(input:checked) {
-  border-color: #49a386;
-  background: rgba(73, 163, 134, 0.12);
-  box-shadow: 0 0 0 2px rgba(73, 163, 134, 0.15);
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 .option-card:hover {
   border-color: #49a386;
+  box-shadow: 0 6px 18px rgba(23, 95, 123, 0.08);
+}
+
+.option-card:has(input:checked) {
+  border-color: #49a386;
+  background: rgba(73, 163, 134, 0.10);
+  box-shadow: 0 0 0 2px rgba(73, 163, 134, 0.12);
 }
