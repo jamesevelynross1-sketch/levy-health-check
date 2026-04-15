@@ -222,3 +222,33 @@ export const assessmentCategories: AssessmentCategory[] = [
     ],
   },
 ];
+export type AssessmentRecommendation = {
+  title: string;
+  detail: string;
+  priority?: 'High' | 'Medium' | 'Low';
+};
+
+export type ReportRecommendation = {
+  questionId: string;
+  questionPrompt: string;
+  categoryId: string;
+  categoryTitle: string;
+  title: string;
+  detail: string;
+  priority: 'High' | 'Medium' | 'Low';
+};
+
+export type AssessmentReport = {
+  answers: AssessmentAnswers;
+  metadata: AssessmentMetadata;
+  overallScore: number;
+  maturity: string;
+  categoryResults: CategoryResult[];
+  executiveSummary: string;
+  keyRisks: string[];
+  keyOpportunities: string[];
+  recommendedNextSteps: string[];
+  consultingSupport: string[];
+  recommendations: ReportRecommendation[];
+  updatedAt: string;
+};

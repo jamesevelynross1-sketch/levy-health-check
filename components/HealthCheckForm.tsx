@@ -4,97 +4,76 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Stepper from './Stepper';
 import {
-  assessmentCategories,
-  buildAssessmentReport,
-  initialAssessmentAnswers,
-  type AssessmentAnswers,
-  type AssessmentMetadata,
-} from '../lib/assessment';
-
-const steps = ['Organisation & funding', 'Apprenticeship activity', 'Strategy & governance', 'Provider & culture'];
-const pageGroups = [[0, 1], [2], [3, 4], [5, 6, 7]] as const;
-
-export default function HealthCheckForm() {
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<AssessmentAnswers>(initialAssessmentAnswers);
-  const [organisationName, setOrganisationName] = useState('');
-  const [sector, setSector] = useState('Education');
-  const [workforceSize, setWorkforceSize] = useState('180');
-  const [levyContribution, setLevyContribution] = useState('120000');
-  const [monthlyLevySpend, setMonthlyLevySpend] = useState('10000');
-  const [apprenticeCount, setApprenticeCount] = useState('25');
-  const [logoDataUrl, setLogoDataUrl] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({
-    workforceSize: '',
-    levyContribution: '',
-    monthlyLevySpend: '',
-    apprenticeCount: '',
-  });
-  const router = useRouter();
-
-  const safeNumber = (value: unknown, fallback: number) => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed || fallback : fallback;
+export const buildAssessmentReport = (
+  answers: AssessmentAnswers,
+  metadata: AssessmentMetadata
+): AssessmentReport => {
+  const safeMetadata: AssessmentMetadata = {
+    ...metadata,
+    workforceSize: safeNumber(metadata.workforceSize, 1),
+    levyContribution: safeNumber(metadata.levyContribution, 0),
+    monthlyLevySpend: safeNumber(metadata.monthlyLevySpend, 0),
+    apprenticeCount: safeNumber(metadata.apprenticeCount, 0),
   };
 
-  const validateNumericField = (field: string, value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return 'This field is required.';
-    }
-    if (!/^[0-9]+$/.test(trimmed)) {
-      return 'Enter a valid number.';
-    }
-    const parsed = Number(trimmed);
-    if (field === 'workforceSize' && parsed < 1) {
-      return 'Workforce size must be at least 1.';
-    }
-    if ((field === 'levyContribution' || field === 'monthlyLevySpend') && parsed < 0) {
-      return 'Enter a valid amount.';
-    }
-    if (field === 'apprenticeCount' && parsed < 0) {
-      return 'Apprentice count cannot be negative.';
-    }
-    return '';
-  };
+  const categoryResults = getCategoryResults(answers);
+  const overallScore = getOverallScore(answers);
+  const maturity = getMaturityLevel(overallScore);
 
-  const handleFieldBlur = (field: string, value: string) => {
-    setErrors((current) => ({ ...current, [field]: validateNumericField(field, value) }));
-  };
+  const recommendations: ReportRecommendation[] = [];
 
-  const validateAllFields = () => {
-    const nextErrors = {
-      workforceSize: validateNumericField('workforceSize', workforceSize),
-      levyContribution: validateNumericField('levyContribution', levyContribution),
-      monthlyLevySpend: validateNumericField('monthlyLevySpend', monthlyLevySpend),
-      apprenticeCount: validateNumericField('apprenticeCount', apprenticeCount),
-    };
-    setErrors(nextErrors);
-    return Object.values(nextErrors).every((error) => !error);
-  };
+  for (const category of assessmentCategories) {
+    for (const question of category.questions) {
+      const selectedScore = answers[question.id];
+      const selectedOption = question.options.find((option) => option.score === selectedScore);
 
-  const report = useMemo(
-    () =>
-      buildAssessmentReport(answers, {
-        organisationName,
-        sector,
-        workforceSize: safeNumber(workforceSize, 1),
-        levyContribution: safeNumber(levyContribution, 0),
-        monthlyLevySpend: safeNumber(monthlyLevySpend, 0),
-        apprenticeCount: safeNumber(apprenticeCount, 0),
-        logoDataUrl,
-      }),
-    [answers, organisationName, sector, workforceSize, levyContribution, monthlyLevySpend, apprenticeCount, logoDataUrl]
+      if (selectedOption?.recommendations?.length) {
+        for (const recommendation of selectedOption.recommendations) {
+          recommendations.push({
+            questionId: question.id,
+            questionPrompt: question.prompt,
+            categoryId: category.id,
+            categoryTitle: category.title,
+            title: recommendation.title,
+            detail: recommendation.detail,
+            priority: recommendation.priority ?? 'Medium',
+          });
+        }
+      }
+    }
+  }
+
+  const dedupedRecommendations = recommendations.filter(
+    (recommendation, index, array) =>
+      index ===
+      array.findIndex(
+        (item) =>
+          item.title === recommendation.title &&
+          item.categoryId === recommendation.categoryId
+      )
   );
-  const safeStep = Math.min(Math.max(step, 0), pageGroups.length - 1);
-  const currentCategories = pageGroups[safeStep]?.map((index) => assessmentCategories[index]) ?? [];
 
-  const nextStep = () => setStep((current) => Math.min(current + 1, steps.length - 1));
-  const prevStep = () => setStep((current) => Math.max(current - 1, 0));
+  const priorityOrder = { High: 0, Medium: 1, Low: 2 };
 
-  const updateAnswer = (questionId: string, score: number) => {
-    setAnswers((current) => ({ ...current, [questionId]: score }));
+  dedupedRecommendations.sort(
+    (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
+  );
+
+  return {
+    answers,
+    metadata: safeMetadata,
+    overallScore,
+    maturity,
+    categoryResults,
+    executiveSummary: buildExecutiveSummary(overallScore, maturity, categoryResults, safeMetadata),
+    keyRisks: buildKeyRisks(overallScore, categoryResults, safeMetadata),
+    keyOpportunities: buildKeyOpportunities(overallScore, categoryResults, safeMetadata),
+    recommendedNextSteps: buildRecommendedNextSteps(overallScore, categoryResults),
+    consultingSupport: buildConsultingSupport(safeMetadata),
+    recommendations: dedupedRecommendations,
+    updatedAt: new Date().toISOString(),
   };
+};
 
   return (
     <div className="health-form">
