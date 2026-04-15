@@ -747,7 +747,7 @@ export default function ResultsPage() {
                 <li key={`consult-${index}`}>{item}</li>
               ))}
             </ul>
-            <a className="primary-button" href="mailto:contact@mprconsulting.co.uk?subject=Levy%20Health%20Check%20Follow-up">
+            <a className="primary-button" href="mailto:james@mprconsulting.co.uk?subject=Levy%20Health%20Check%20Follow-up">
               Request follow-up conversation
             </a>
           </div>
